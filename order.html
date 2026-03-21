@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Prints - PicPro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+
+        .option-card {
+            border: 2px solid #e2e8f0;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .option-card.selected {
+            border-color: #2563eb;
+            background-color: #eff6ff;
+        }
+
+        .option-card.selected svg {
+            color: #2563eb;
+        }
+
+        .toggle-container {
+            display: flex;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 12px;
+        }
+
+        .toggle-option {
+            padding: 6px 20px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .toggle-option.active {
+            background: white;
+            color: #2563eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .toggle-option:not(.active) {
+            color: #64748b;
+        }
+
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            border-color: #2563eb;
+            background-color: #f1f5f9;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            transition: border-color 0.2s;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #2563eb;
+            ring: 2px ring-blue-100;
+        }
+
+        .hidden-section {
+            display: none;
+        }
+
+        .visible-section {
+            display: flex;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .success-box {
+            display: none;
+        }
+
+        .success-box.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(255,255,255,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="bg-white rounded-2xl shadow-xl px-8 py-6 text-center border border-gray-100">
+            <div class="text-lg font-bold text-gray-900 mb-2">Processing your order...</div>
+            <div class="text-sm text-gray-500">Please wait, do not close this page.</div>
+        </div>
+    </div>
+
+    <nav class="bg-white border-b border-gray-100 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-20 items-center">
+                <div class="flex-shrink-0">
+                    <a href="index.html" class="text-2xl font-bold text-blue-600 tracking-tight">PicPro</a>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="index.html" class="text-gray-600 hover:text-blue-600 font-medium text-sm">Home</a>
+                    <a href="#" class="btn-primary px-6 py-2.5 rounded-full font-semibold shadow-sm text-sm">Help</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow py-12 px-4">
+        <div class="max-w-3xl mx-auto">
+
+            <div id="successBox" class="success-box mb-6 bg-green-50 border border-green-200 text-green-800 px-6 py-5 rounded-2xl">
+                <div class="text-lg font-bold">Order placed successfully ✅</div>
+                <div class="text-sm mt-1">Your payment was successful and your order has been saved.</div>
+                <div id="successOrderId" class="text-xs mt-2 text-green-700"></div>
+            </div>
+
+            <header class="mb-10 text-center md:text-left">
+                <h1 class="text-4xl font-extrabold text-gray-900 mb-2">Order Your Prints</h1>
+                <p class="text-gray-500">Select your preferences and upload your media.</p>
+            </header>
+
+            <form id="orderForm" class="space-y-6">
+                <section class="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                    <h2 class="text-lg font-bold text-gray-900 mb-6 flex items-center">
+                        Select Paper Size
+                    </h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="option-card p-6 rounded-2xl text-center" onclick="selectSize(this, 'Card', 40)">
+                            <div class="flex justify-center mb-4">
+                                <svg class="w-8 h-8 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="7" width="14" height="10" rx="1" /><path d="M5 14h14" /></svg>
+                            </div>
+                            <div class="text-sm font-bold text-gray-900 mb-1">Card</div>
+                            <div class="text-xs text-gray-500">4" x 6" • ₹40</div>
+                        </div>
+                        <div class="option-card p-6 rounded-2xl text-center" onclick="selectSize(this, 'A5', 70)">
+                            <div class="flex justify-center mb-4">
+                                <svg class="w-8 h-8 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 4h12v16H6z" /><path d="M6 8h12M6 12h12" /></svg>
+                            </div>
+                            <div class="text-sm font-bold text-gray-900 mb-1">A5</div>
+                            <div class="text-xs text-gray-500">5.8" x 8.3" • ₹70</div>
+                        </div>
+                        <div class="option-card p-6 rounded-2xl text-center" onclick="selectSize(this, 'A4', 130)">
+                            <div class="flex justify-center mb-4">
+                                <svg class="w-8 h-8 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 2h16v20H4z" /><path d="M4 6h16M4 10h16M4 14h16" /></svg>
+                            </div>
+                            <div class="text-sm font-bold text-gray-900 mb-1">A4</div>
+                            <div class="text-xs text-gray-500">8.3" x 11.7" • ₹130</div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                    <h2 class="text-lg font-bold text-gray-900 mb-6">Customization</h2>
+                    <div class="space-y-6">
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <span class="text-gray-700 font-medium text-sm block">Spiral Binding</span>
+                                    <span class="text-xs text-gray-400">+₹30 total</span>
+                                </div>
+                                <div class="toggle-container" id="spiralBindingContainer">
+                                    <div class="toggle-option active" onclick="handleBindingToggle(this, 'no', 0)">No</div>
+                                    <div class="toggle-option" onclick="handleBindingToggle(this, 'yes', 30)">Yes</div>
+                                </div>
+                            </div>
+                            
+                            <div id="bindingOrientation" class="hidden-section items-center justify-between pl-4 border-l-2 border-blue-100 ml-2">
+                                <span class="text-gray-500 font-medium text-sm">Bind on</span>
+                                <div class="toggle-container">
+                                    <div class="toggle-option active" onclick="setToggle(this, 'side'); state.bindingOrientation='side';">Side</div>
+                                    <div class="toggle-option" onclick="setToggle(this, 'top'); state.bindingOrientation='top';">Top</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-2 border-t border-gray-50">
+                            <div>
+                                <span class="text-gray-700 font-medium text-sm block">Transparent Cover</span>
+                                <span class="text-xs text-gray-400">+₹10 total</span>
+                            </div>
+                            <div class="toggle-container">
+                                <div class="toggle-option active" onclick="handleCoverToggle(this, 'no', 0)">No</div>
+                                <div class="toggle-option" onclick="handleCoverToggle(this, 'yes', 10)">Yes</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                    <h2 class="text-lg font-bold text-gray-900 mb-6">Upload Images</h2>
+                    <div class="upload-area rounded-2xl p-10 text-center relative">
+                        <input type="file" multiple accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" id="fileUpload">
+                        <div class="space-y-2">
+                            <p class="text-gray-900 font-bold text-sm">Drop images here or click to browse</p>
+                            <p class="text-xs text-gray-400">Select multiple images to print</p>
+                        </div>
+                    </div>
+                    <div id="fileList" class="mt-4 space-y-2"></div>
+                </section>
+
+                <section class="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                    <h2 class="text-lg font-bold text-gray-900 mb-6">Delivery Details</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Full Name</label>
+                            <input id="fullName" type="text" required class="input-field" placeholder="John Doe">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Email Address (Gmail)</label>
+                            <input id="email" type="email" required class="input-field" placeholder="example@gmail.com">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Phone Number</label>
+                            <input id="phone" type="tel" required pattern="[0-9]{10}" maxlength="10" class="input-field" placeholder="10-digit mobile number">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">PIN Code</label>
+                            <input id="pincode" type="text" required pattern="[0-9]{6}" maxlength="6" class="input-field" placeholder="6-digit PIN">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Street Address</label>
+                            <textarea id="streetAddress" required rows="2" class="input-field" placeholder="House No, Building, Area"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">City</label>
+                            <input id="city" type="text" required class="input-field" placeholder="City">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">State</label>
+                            <select id="stateField" required class="input-field">
+                                <option value="" disabled selected>Select State</option>
+                                <option>Andhra Pradesh</option>
+                                <option>Bihar</option>
+                                <option>Delhi</option>
+                                <option>Gujarat</option>
+                                <option>Karnataka</option>
+                                <option>Kerala</option>
+                                <option>Maharashtra</option>
+                                <option>Tamil Nadu</option>
+                                <option>West Bengal</option>
+                                <option>Others</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="bg-blue-600 p-8 rounded-3xl shadow-xl text-white">
+                    <h2 class="text-lg font-bold mb-4">Order Summary</h2>
+                    <div class="space-y-2 text-sm opacity-90">
+                        <div class="flex justify-between">
+                            <span>Print Cost (<span id="summary-quantity">0</span> × ₹<span id="summary-unit-price">0</span>)</span>
+                            <span>₹<span id="summary-print-total">0</span></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Spiral Binding</span>
+                            <span>₹<span id="summary-binding">0</span></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Transparent Cover</span>
+                            <span>₹<span id="summary-cover">0</span></span>
+                        </div>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-blue-400 flex justify-between items-center">
+                        <span class="text-xl font-bold">Total Amount</span>
+                        <span class="text-3xl font-extrabold">₹<span id="summary-total">0</span></span>
+                    </div>
+                </section>
+
+                <button id="submitBtn" type="submit" class="btn-primary w-full py-5 rounded-2xl text-xl font-bold shadow-lg shadow-blue-200">
+                    Pay & Order Now
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <footer class="py-10 bg-white border-t border-gray-100 text-center">
+        <p class="text-gray-400 text-xs">© 2024 PicPro. Minimalist Print Ordering.</p>
+    </footer>
+
+   <script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, addDoc, updateDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+const firebaseConfig = {
+ apiKey: "AIzaSyC7FaqPkvnf53OpB-ixtE3ripOlRlCSJP0",
+  authDomain: "mailfair-1ccec.firebaseapp.com",
+  projectId: "mailfair-1ccec",
+  storageBucket: "mailfair-1ccec.firebasestorage.app",
+  messagingSenderId: "693763686079",
+  appId: "1:693763686079:web:59422b02bca69bc3bd100a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+window.firebaseDb = db;
+window.firebaseStorage = storage;
+
+window.firebaseFns = {
+  collection,
+  addDoc,
+  updateDoc,
+  doc,
+  serverTimestamp,
+  ref,
+  uploadBytes,
+  getDownloadURL
+};
+
+</script>
+
+    <script>
+        
+        let state = {
+            selectedSize: "",
+            unitPrice: 0,
+            quantity: 0,
+            bindingPrice: 0,
+            coverPrice: 0,
+            bindingEnabled: false,
+            coverEnabled: false,
+            bindingOrientation: "side"
+        };
+
+        function updateSummary() {
+            const printTotal = state.unitPrice * state.quantity;
+            const grandTotal = printTotal + state.bindingPrice + state.coverPrice;
+
+            document.getElementById('summary-quantity').textContent = state.quantity;
+            document.getElementById('summary-unit-price').textContent = state.unitPrice;
+            document.getElementById('summary-print-total').textContent = printTotal;
+            document.getElementById('summary-binding').textContent = state.bindingPrice;
+            document.getElementById('summary-cover').textContent = state.coverPrice;
+            document.getElementById('summary-total').textContent = grandTotal;
+        }
+
+        function selectSize(element, size, price) {
+            document.querySelectorAll('.option-card').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            state.selectedSize = size;
+            state.unitPrice = price;
+            updateSummary();
+        }
+
+        function setToggle(element, value) {
+            const container = element.parentElement;
+            container.querySelectorAll('.toggle-option').forEach(opt => opt.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        function handleBindingToggle(element, value, price) {
+            setToggle(element, value);
+            state.bindingPrice = price;
+            state.bindingEnabled = value === 'yes';
+            
+            const orientationSection = document.getElementById('bindingOrientation');
+            if (value === 'yes') {
+                orientationSection.classList.remove('hidden-section');
+                orientationSection.classList.add('visible-section');
+            } else {
+                orientationSection.classList.add('hidden-section');
+                orientationSection.classList.remove('visible-section');
+                state.bindingOrientation = "side";
+            }
+            updateSummary();
+        }
+
+        function handleCoverToggle(element, value, price) {
+            setToggle(element, value);
+            state.coverPrice = price;
+            state.coverEnabled = value === 'yes';
+            updateSummary();
+        }
+
+        const fileUpload = document.getElementById('fileUpload');
+        const fileList = document.getElementById('fileList');
+
+        fileUpload.addEventListener('change', (e) => {
+            fileList.innerHTML = '';
+            const files = Array.from(e.target.files);
+            state.quantity = files.length;
+            
+            files.forEach(file => {
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg text-xs text-gray-600';
+                item.innerHTML = `<span>${file.name}</span><span class="font-bold">${(file.size / 1024 / 1024).toFixed(2)} MB</span>`;
+                fileList.appendChild(item);
+            });
+
+            updateSummary();
+        });
+
+        function showLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            const btn = document.getElementById('submitBtn');
+            if (show) {
+                overlay.classList.add('show');
+                btn.disabled = true;
+                btn.classList.add('opacity-70', 'cursor-not-allowed');
+            } else {
+                overlay.classList.remove('show');
+                btn.disabled = false;
+                btn.classList.remove('opacity-70', 'cursor-not-allowed');
+            }
+        }
+
+        function getFormData() {
+            return {
+                fullName: document.getElementById('fullName').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                pincode: document.getElementById('pincode').value.trim(),
+                streetAddress: document.getElementById('streetAddress').value.trim(),
+                city: document.getElementById('city').value.trim(),
+                stateField: document.getElementById('stateField').value.trim()
+            };
+        }
+
+        function validateBeforePay() {
+            const form = document.getElementById('orderForm');
+
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return false;
+            }
+
+            if (state.unitPrice === 0 || !state.selectedSize) {
+                alert('Please select a paper size first.');
+                return false;
+            }
+
+            if (state.quantity === 0) {
+                alert('Please upload at least one image.');
+                return false;
+            }
+
+            return true;
+        }
+
+        async function uploadImagesToFirebase(files, orderFolder) {
+            const { ref, uploadBytes, getDownloadURL } = window.firebaseFns;
+            const uploadedUrls = [];
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const safeName = `${Date.now()}_${i}_${file.name.replace(/\s+/g, '_')}`;
+                const fileRef = ref(window.firebaseStorage, `orders/${orderFolder}/${safeName}`);
+                await uploadBytes(fileRef, file);
+                const url = await getDownloadURL(fileRef);
+                uploadedUrls.push(url);
+            }
+
+            return uploadedUrls;
+        }
+
+        async function savePendingOrder(imageUrls, formData, totalAmount) {
+            const { collection, addDoc, serverTimestamp } = window.firebaseFns;
+
+            const orderData = {
+                customerName: formData.fullName,
+                email: formData.email,
+                phone: formData.phone,
+                address: {
+                    street: formData.streetAddress,
+                    city: formData.city,
+                    state: formData.stateField,
+                    pincode: formData.pincode
+                },
+                orderDetails: {
+                    paperSize: state.selectedSize,
+                    unitPrice: state.unitPrice,
+                    quantity: state.quantity,
+                    printTotal: state.unitPrice * state.quantity,
+                    spiralBinding: state.bindingEnabled,
+                    spiralBindingPrice: state.bindingPrice,
+                    bindingOrientation: state.bindingEnabled ? state.bindingOrientation : "",
+                    transparentCover: state.coverEnabled,
+                    transparentCoverPrice: state.coverPrice,
+                    totalAmount: totalAmount
+                },
+                imageUrls: imageUrls,
+                paymentStatus: "pending",
+                razorpayPaymentId: "",
+                razorpayOrderId: "",
+                razorpaySignature: "",
+                createdAt: serverTimestamp()
+            };
+
+            const docRef = await addDoc(collection(window.firebaseDb, "orders"), orderData);
+            return docRef.id;
+        }
+
+        async function markOrderPaid(orderId, paymentResponse) {
+            const { doc, updateDoc } = window.firebaseFns;
+
+            await updateDoc(doc(window.firebaseDb, "orders", orderId), {
+                paymentStatus: "paid",
+                razorpayPaymentId: paymentResponse.razorpay_payment_id || "",
+                razorpayOrderId: paymentResponse.razorpay_order_id || "",
+                razorpaySignature: paymentResponse.razorpay_signature || "",
+                paidAt: new Date().toISOString()
+            });
+        }
+
+        function openRazorpay(totalAmount, formData, orderId) {
+            const options = {
+                key: "YOUR_RAZORPAY_KEY_ID",
+                amount: totalAmount * 100,
+                currency: "INR",
+                name: "PicPro",
+                description: "Photo Print Order",
+                handler: async function (response) {
+                    try {
+                        showLoading(true);
+                        await markOrderPaid(orderId, response);
+                        window.location.href = window.location.pathname + `?success=1&orderId=${encodeURIComponent(orderId)}`;
+                    } catch (error) {
+                        console.error("Payment update failed:", error);
+                        alert("Payment received, but order update failed. Please contact support.");
+                        showLoading(false);
+                    }
+                },
+                prefill: {
+                    name: formData.fullName,
+                    email: formData.email,
+                    contact: formData.phone
+                },
+                theme: {
+                    color: "#2563eb"
+                },
+                modal: {
+                    ondismiss: function () {
+                        showLoading(false);
+                    }
+                }
+            };
+
+            const rzp = new Razorpay(options);
+            rzp.on('payment.failed', function (response) {
+                console.error("Payment failed:", response.error);
+                alert("Payment failed. Please try again.");
+                showLoading(false);
+            });
+            rzp.open();
+        }
+
+        document.getElementById('orderForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!validateBeforePay()) return;
+
+            const files = Array.from(document.getElementById('fileUpload').files);
+            const formData = getFormData();
+            const totalAmount = (state.unitPrice * state.quantity) + state.bindingPrice + state.coverPrice;
+
+            try {
+                showLoading(true);
+
+                const tempFolderName = `temp_${Date.now()}`;
+                const imageUrls = await uploadImagesToFirebase(files, tempFolderName);
+                const orderId = await savePendingOrder(imageUrls, formData, totalAmount);
+
+                showLoading(false);
+                openRazorpay(totalAmount, formData, orderId);
+            } catch (error) {
+                console.error(error);
+                showLoading(false);
+                alert("Something went wrong while uploading files or saving the order.");
+            }
+        });
+
+        (function showSuccessMessageIfNeeded() {
+            const params = new URLSearchParams(window.location.search);
+            const success = params.get('success');
+            const orderId = params.get('orderId');
+
+            if (success === '1') {
+                const successBox = document.getElementById('successBox');
+                const successOrderId = document.getElementById('successOrderId');
+                successBox.classList.add('show');
+                successOrderId.textContent = orderId ? `Order ID: ${orderId}` : '';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        })();
+    </script>
+</body>
+</html>

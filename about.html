@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Section</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #f9f9f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .about-canvas {
+            background-color: #ffffff;
+            max-width: 800px;
+            margin: 80px auto;
+            padding: 60px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+        }
+
+        .about-header {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #1a1a1a;
+            border-bottom: 3px solid #007bff;
+            display: inline-block;
+        }
+
+        .about-content {
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+        }
+
+        .skills-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .skill-tag {
+            background: #eef2f7;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #444;
+        }
+
+        @media (max-width: 600px) {
+            .about-canvas {
+                margin: 20px;
+                padding: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <section class="about-canvas">
+        <h2 class="about-header">PicPro</h2>
+        
+        <div class="about-content">
+            <p>
+                You can customize your photo size as you need and can download it for free
+            </p>
+            <p>
+               FeedUs - <a href="https://buymeacoffee.com/prolive">ProCompLog</a>
+            </p>
+        </div>
+
+        <div class="skills-container">
+            <span class="skill-tag">Design Thinking</span>
+            <span class="skill-tag">Web Development</span>
+            <span class="skill-tag">Creative Strategy</span>
+            <span class="skill-tag">Problem Solving</span>
+        </div>
+    </section>
+
+</body>
+</html>
