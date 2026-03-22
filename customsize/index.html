@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PicPro - Coming Soon</title>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #ffffff;
+        }
+
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-gray-100 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <span class="text-2xl font-bold text-blue-600 tracking-tight">PicPro</span>
+        </div>
+    </nav>
+
+    <!-- Coming Soon Section -->
+    <main class="flex-grow flex items-center justify-center px-4">
+        <div class="text-center max-w-xl">
+
+            <!-- Icon -->
+            <div class="flex justify-center mb-8">
+                <div class="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center">
+                    <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Title -->
+            <h1 class="text-5xl md:text-6xl font-extrabold text-gray-900 mb-4">
+                Coming Soon
+            </h1>
+
+            <!-- Subtitle -->
+            <p class="text-gray-600 text-lg mb-8">
+                We’re working on something amazing. Stay tuned for updates!
+            </p>
+
+            <!-- Button -->
+            <a href="index.html">
+                <button class="btn-primary px-8 py-3 rounded-xl text-lg font-semibold shadow-lg shadow-blue-200">
+                    Back to Home
+                </button>
+            </a>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-6 border-t border-gray-100 text-center">
+        <p class="text-gray-400 text-sm">© 2026 PicPro Inc. All rights reserved.</p>
+    </footer>
+
+</body>
+</html>
