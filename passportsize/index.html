@@ -190,11 +190,13 @@
     const DPI = 300;
     const mmToPx = (mm) => Math.round((mm * DPI) / 25.4);
 
-    const PHOTO_W = mmToPx(35);
-    const PHOTO_H = mmToPx(45);
-    const BORDER_OUTSIDE = 25;
-    const UNIT_W = PHOTO_W + (BORDER_OUTSIDE * 2);
-    const UNIT_H = PHOTO_H + (BORDER_OUTSIDE * 2);
+    const TOTAL_W = mmToPx(35);
+    const TOTAL_H = mmToPx(45);
+    const BORDER_OUTSIDE = mmToPx(2);
+    const PHOTO_W = TOTAL_W - (BORDER_OUTSIDE * 2);
+    const PHOTO_H = TOTAL_H - (BORDER_OUTSIDE * 2);
+    const UNIT_W = TOTAL_W;
+    const UNIT_H = TOTAL_H;
 
     const PAGE_SIZES = {
         a0: { name: "A0", widthMm: 841, heightMm: 1189 },
