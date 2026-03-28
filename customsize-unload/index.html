@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PicPro | Custom Photo Size</title>
+    <link rel="icon" type="image/png" href="logo/PicPro.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(37,99,235,0.05), transparent 25%),
+                linear-gradient(to bottom, #f8fbff 0%, #f1f5f9 100%);
+        }
+
+        #canvas-container {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, #dbeafe 0%, #e2e8f0 45%, #cbd5e1 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 24px;
+            box-shadow: inset 0 2px 14px rgba(0,0,0,0.08);
+        }
+
+        #main-canvas {
+            background-color: white;
+            position: relative;
+            box-shadow: 0 24px 55px -14px rgba(15, 23, 42, 0.25);
+            overflow: hidden;
+            border-radius: 4px;
+        }
+
+        #secondary-canvas-frame {
+            position: absolute;
+            border: 3px solid #2563eb;
+            z-index: 30;
+            cursor: move;
+            box-sizing: border-box;
+            display: none;
+            background: rgba(37, 99, 235, 0.08);
+            box-shadow: 0 0 0 9999px rgba(255,255,255,0.14);
+        }
+
+        #secondary-canvas-frame::after {
+            content: "PRINT FRAME";
+            position: absolute;
+            top: -28px;
+            left: 0;
+            background: #2563eb;
+            color: white;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            padding: 4px 10px;
+            border-radius: 999px;
+            box-shadow: 0 8px 18px rgba(37,99,235,0.22);
+        }
+
+        #image-container {
+            position: absolute;
+            user-select: none;
+            cursor: move;
+            transform-origin: top left;
+            z-index: 10;
+        }
+
+        #image-element {
+            width: 100%;
+            height: 100%;
+            display: block;
+            pointer-events: none;
+        }
+
+        .resize-handle {
+            width: 13px;
+            height: 13px;
+            background: #2563eb;
+            position: absolute;
+            border: 2px solid white;
+            z-index: 100;
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+        }
+
+        .handle-nw { top: -6px; left: -6px; cursor: nw-resize; }
+        .handle-n  { top: -6px; left: calc(50% - 6px); cursor: n-resize; }
+        .handle-ne { top: -6px; right: -6px; cursor: ne-resize; }
+        .handle-w  { top: calc(50% - 6px); left: -6px; cursor: w-resize; }
+        .handle-e  { top: calc(50% - 6px); right: -6px; cursor: e-resize; }
+        .handle-sw { bottom: -6px; left: -6px; cursor: sw-resize; }
+        .handle-s  { bottom: -6px; left: calc(50% - 6px); cursor: s-resize; }
+        .handle-se { bottom: -6px; right: -6px; cursor: se-resize; }
+
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #2563eb;
+        }
+
+        .toggle-checkbox:checked + .toggle-label .toggle-dot {
+            transform: translateX(100%);
+        }
+
+        #file-input { display: none; }
+
+        .panel-card {
+            background: rgba(255,255,255,0.92);
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+            backdrop-filter: blur(8px);
+        }
+
+        .soft-input {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+        }
+
+        .soft-input:focus {
+            outline: none;
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+            background: white;
+        }
+
+        .main-btn {
+            background: #2563eb;
+            color: white;
+            box-shadow: 0 10px 25px rgba(37,99,235,0.18);
+            transition: all 0.25s ease;
+        }
+
+        .main-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+
+        .download-btn {
+            background: #2563eb;
+            color: white;
+            box-shadow: 0 10px 25px rgba(37,99,235,0.18);
+            transition: all 0.25s ease;
+        }
+
+        .download-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <nav class="bg-white/95 backdrop-blur border-b border-gray-100 sticky top-0 z-[1000]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex h-20 items-center">
+                <span class="text-2xl font-extrabold text-gray-900 tracking-tight">
+                    PicPro <span class="text-blue-600">Editor</span>
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow flex flex-col lg:flex-row p-4 lg:p-6 gap-6 max-w-[1600px] mx-auto w-full">
+        
+        <div class="w-full lg:w-80 flex flex-col gap-5 shrink-0">
+
+            <!-- Upload Photo -->
+            <div class="panel-card p-5 rounded-3xl">
+                <button onclick="document.getElementById('file-input').click()" class="main-btn w-full py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Upload Photo
+                </button>
+                <input type="file" id="file-input" accept="image/*">
+            </div>
+
+            <!-- Paper Selection -->
+            <div class="panel-card p-5 rounded-3xl">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-3">Main Paper Size</label>
+                <select id="canvas-select" class="soft-input w-full p-3 rounded-2xl font-medium text-sm text-gray-800">
+                    <option value="a4">A4 (210 x 297 mm)</option>
+                    <option value="a3">A3 (297 x 420 mm)</option>
+                    <option value="letter">Letter (8.5 x 11 in)</option>
+                    <option value="legal">Legal (8.5 x 14 in)</option>
+                </select>
+            </div>
+
+            <!-- Secondary Canvas Toggle & Controls -->
+            <div class="panel-card p-5 rounded-3xl">
+                <div class="flex items-center justify-between mb-5">
+                    <span class="text-sm font-bold text-gray-700">Secondary Canvas</span>
+                    <div class="relative inline-block w-10 align-middle select-none">
+                        <input type="checkbox" id="toggle-sec" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer outline-none transition-all duration-300 ease-in-out" style="top:-2px; left:-2px;"/>
+                        <label for="toggle-sec" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer transition-colors duration-300 ease-in-out">
+                            <span class="toggle-dot block w-5 h-5 rounded-full bg-white shadow transform transition-transform duration-300 ease-in-out"></span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div id="sec-controls" class="opacity-40 pointer-events-none transition-opacity">
+                    <div class="flex justify-between items-center mb-3">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase">Frame Scale</label>
+                        <select id="unit-select" class="bg-blue-50 text-blue-700 font-bold px-2 py-1 rounded-lg border border-blue-100 text-[10px]">
+                            <option value="mm">mm</option>
+                            <option value="cm">cm</option>
+                            <option value="in">in</option>
+                            <option value="px">px</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <span class="text-[9px] text-gray-400 font-bold block mb-1">WIDTH</span>
+                            <input type="number" id="input-w" class="soft-input w-full p-2.5 rounded-xl text-sm font-semibold" value="100">
+                        </div>
+                        <div>
+                            <span class="text-[9px] text-gray-400 font-bold block mb-1">HEIGHT</span>
+                            <input type="number" id="input-h" class="soft-input w-full p-2.5 rounded-xl text-sm font-semibold" value="150">
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-gray-400 mt-3">With frame active, only the area <b>inside</b> the blue frame will be saved. Everything else will be white.</p>
+                </div>
+            </div>
+
+            <div class="mt-auto space-y-3">
+                <button id="download-btn" class="download-btn w-full py-4 rounded-3xl font-bold flex items-center justify-center gap-2 active:scale-[0.98]">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Download Paper
+                </button>
+            </div>
+        </div>
+
+        <div class="flex-grow flex items-center justify-center bg-white/70 rounded-[2rem] border border-blue-100 shadow-[0_20px_50px_rgba(15,23,42,0.06)] overflow-hidden relative min-h-[600px] p-3">
+            <div id="canvas-container" class="p-8 w-full h-full flex items-center justify-center">
+                <div id="main-canvas">
+                    <div id="secondary-canvas-frame"></div>
+
+                    <div id="image-container" style="display: none;">
+                        <img id="image-element" src="" alt="">
+                        <div class="resize-handle handle-nw" data-handle="nw"></div>
+                        <div class="resize-handle handle-n" data-handle="n"></div>
+                        <div class="resize-handle handle-ne" data-handle="ne"></div>
+                        <div class="resize-handle handle-w" data-handle="w"></div>
+                        <div class="resize-handle handle-e" data-handle="e"></div>
+                        <div class="resize-handle handle-sw" data-handle="sw"></div>
+                        <div class="resize-handle handle-s" data-handle="s"></div>
+                        <div class="resize-handle handle-se" data-handle="se"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <canvas id="export-canvas" style="display: none;"></canvas>
+
+    <script>
+        const canvasSelect = document.getElementById('canvas-select');
+        const unitSelect = document.getElementById('unit-select');
+        const toggleSec = document.getElementById('toggle-sec');
+        const secControls = document.getElementById('sec-controls');
+        const fileInput = document.getElementById('file-input');
+        const img = document.getElementById('image-element');
+        const imgContainer = document.getElementById('image-container');
+        const mainCanvas = document.getElementById('main-canvas');
+        const secFrame = document.getElementById('secondary-canvas-frame');
+        const container = document.getElementById('canvas-container');
+        const inputW = document.getElementById('input-w');
+        const inputH = document.getElementById('input-h');
+        const downloadBtn = document.getElementById('download-btn');
+
+        let state = {
+            imgW: 0, imgH: 0, imgX: 20, imgY: 20,
+            secW: 100, secH: 150, secX: 50, secY: 50,
+            secEnabled: false,
+            displayScale: 1, 
+            isDraggingImg: false,
+            isDraggingSec: false,
+            isResizing: false,
+            activeHandle: null,
+            startX: 0, startY: 0,
+            paperSizes: {
+                a4: { w: 210, h: 297 },
+                a3: { w: 297, h: 420 },
+                letter: { w: 215.9, h: 279.4 },
+                legal: { w: 215.9, h: 355.6 }
+            }
+        };
+
+        const conversion = { mm: 1, cm: 0.1, in: 1/25.4, px: 96/25.4 };
+
+        function updateWorkspace() {
+            const paper = state.paperSizes[canvasSelect.value];
+            state.displayScale = Math.min(
+                (container.clientWidth - 100) / paper.w,
+                (container.clientHeight - 100) / paper.h
+            );
+
+            mainCanvas.style.width = (paper.w * state.displayScale) + 'px';
+            mainCanvas.style.height = (paper.h * state.displayScale) + 'px';
+
+            updateSecondaryCanvasUI();
+            render();
+        }
+
+        function updateSecondaryCanvasUI() {
+            if (!state.secEnabled) {
+                secFrame.style.display = 'none';
+                secControls.classList.add('opacity-40', 'pointer-events-none');
+                return;
+            }
+
+            secFrame.style.display = 'block';
+            secControls.classList.remove('opacity-40', 'pointer-events-none');
+            
+            const unit = unitSelect.value;
+            const factor = state.displayScale / conversion[unit];
+            state.secW = parseFloat(inputW.value) * factor;
+            state.secH = parseFloat(inputH.value) * factor;
+
+            renderSec();
+        }
+
+        toggleSec.addEventListener('change', (e) => {
+            state.secEnabled = e.target.checked;
+            if (state.secEnabled) {
+                const mainW = parseFloat(mainCanvas.style.width);
+                const mainH = parseFloat(mainCanvas.style.height);
+                state.secX = (mainW - state.secW) / 2;
+                state.secY = (mainH - state.secH) / 2;
+            }
+            updateSecondaryCanvasUI();
+        });
+
+        inputW.addEventListener('input', updateSecondaryCanvasUI);
+        inputH.addEventListener('input', updateSecondaryCanvasUI);
+        unitSelect.addEventListener('change', updateSecondaryCanvasUI);
+        canvasSelect.addEventListener('change', updateWorkspace);
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        imgContainer.style.display = 'block';
+                        const aspect = img.naturalWidth / img.naturalHeight;
+                        state.imgW = 200;
+                        state.imgH = 200 / aspect;
+                        render();
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function render() {
+            imgContainer.style.width = state.imgW + 'px';
+            imgContainer.style.height = state.imgH + 'px';
+            imgContainer.style.left = state.imgX + 'px';
+            imgContainer.style.top = state.imgY + 'px';
+        }
+
+        function renderSec() {
+            secFrame.style.width = state.secW + 'px';
+            secFrame.style.height = state.secH + 'px';
+            secFrame.style.left = state.secX + 'px';
+            secFrame.style.top = state.secY + 'px';
+        }
+
+        mainCanvas.addEventListener('mousedown', (e) => {
+            const handle = e.target.closest('.resize-handle');
+            const targetSec = e.target.closest('#secondary-canvas-frame');
+            const targetImg = e.target.closest('#image-container');
+            
+            if (handle) {
+                state.isResizing = true;
+                state.activeHandle = handle.dataset.handle;
+            } else if (targetSec) {
+                state.isDraggingSec = true;
+            } else if (targetImg) {
+                state.isDraggingImg = true;
+            } else return;
+
+            state.startX = e.clientX;
+            state.startY = e.clientY;
+            state.startW = state.imgW;
+            state.startH = state.imgH;
+            state.startPosX = state.isDraggingSec ? state.secX : state.imgX;
+            state.startPosY = state.isDraggingSec ? state.secY : state.imgY;
+            e.preventDefault();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            const dx = e.clientX - state.startX;
+            const dy = e.clientY - state.startY;
+
+            if (state.isDraggingImg) {
+                state.imgX = state.startPosX + dx;
+                state.imgY = state.startPosY + dy;
+                render();
+            } else if (state.isDraggingSec) {
+                state.secX = state.startPosX + dx;
+                state.secY = state.startPosY + dy;
+                renderSec();
+            } else if (state.isResizing) {
+                const min = 30;
+                switch (state.activeHandle) {
+                    case 'se': 
+                        state.imgW = Math.max(min, state.startW + dx); 
+                        state.imgH = Math.max(min, state.startH + dy); 
+                        break;
+                    case 'sw': 
+                        state.imgW = Math.max(min, state.startW - dx); 
+                        state.imgH = Math.max(min, state.startH + dy); 
+                        state.imgX = state.startPosX + dx; 
+                        break;
+                    case 'ne': 
+                        state.imgW = Math.max(min, state.startW + dx); 
+                        state.imgH = Math.max(min, state.startH - dy); 
+                        state.imgY = state.startPosY + dy; 
+                        break;
+                    case 'nw': 
+                        state.imgW = Math.max(min, state.startW - dx); 
+                        state.imgH = Math.max(min, state.startH - dy); 
+                        state.imgX = state.startPosX + dx; 
+                        state.imgY = state.startPosY + dy; 
+                        break;
+                    case 'e': state.imgW = Math.max(min, state.startW + dx); break;
+                    case 'w': state.imgW = Math.max(min, state.startW - dx); state.imgX = state.startPosX + dx; break;
+                    case 's': state.imgH = Math.max(min, state.startH + dy); break;
+                    case 'n': state.imgH = Math.max(min, state.startH - dy); state.imgY = state.startPosY + dy; break;
+                }
+                render();
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            state.isDraggingImg = false;
+            state.isDraggingSec = false;
+            state.isResizing = false;
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            if (!img.src) return;
+
+            const exportCanvas = document.getElementById('export-canvas');
+            const ctx = exportCanvas.getContext('2d');
+            const dpi = 300;
+            const mmToInch = 25.4;
+
+            const paper = state.paperSizes[canvasSelect.value];
+            const finalWidthMm = paper.w;
+            const finalHeightMm = paper.h;
+
+            exportCanvas.width = (finalWidthMm / mmToInch) * dpi;
+            exportCanvas.height = (finalHeightMm / mmToInch) * dpi;
+
+            const uiToPx = exportCanvas.width / parseFloat(mainCanvas.style.width);
+
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+            if (state.secEnabled) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(
+                    state.secX * uiToPx,
+                    state.secY * uiToPx,
+                    state.secW * uiToPx,
+                    state.secH * uiToPx
+                );
+                ctx.clip();
+            }
+
+            ctx.drawImage(
+                img, 
+                state.imgX * uiToPx, 
+                state.imgY * uiToPx, 
+                state.imgW * uiToPx, 
+                state.imgH * uiToPx
+            );
+
+            if (state.secEnabled) {
+                ctx.restore();
+            }
+
+            const link = document.createElement('a');
+            link.download = `PicPro_Paper_${Date.now()}.png`;
+            link.href = exportCanvas.toDataURL('image/png', 1.0);
+            link.click();
+        });
+
+        window.addEventListener('resize', updateWorkspace);
+        updateWorkspace();
+    </script>
+</body>
+</html>
